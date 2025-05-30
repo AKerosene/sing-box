@@ -23,12 +23,10 @@
             "server_port": 443
           },
           "private_key": "lLTPR0OfP3FZHXwN3uLaBNMEI7Kjpr8QaM8IYyDOuGQ",
-          "short_id": [
-            "f3a9d2"
-          ]
+          "short_id": ["f3a9d2"]
         }
       },
-      "transport": {
+      "streamSettings": {
         "network": "ws",
         "wsSettings": {
           "path": "/vless"
