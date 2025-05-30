@@ -12,11 +12,9 @@
           "uuid": "de33d7d0-b3e9-4be2-b79e-5d5f13e493eb"
         }
       ],
-      "streamSettings": {
-        "network": "ws",
-        "wsSettings": {
-          "path": "/"
-        }
+      "transport": {
+        "type": "ws",
+        "path": "/"
       }
     }
   ],
