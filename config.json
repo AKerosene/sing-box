@@ -15,6 +15,10 @@
       "transport": {
         "type": "ws",
         "path": "/"
+      },
+      "sniffing": {
+        "enabled": true,
+        "dest_override": ["http", "tls"]
       }
     }
   ],
@@ -22,5 +26,15 @@
     {
       "type": "direct"
     }
-  ]
+  ],
+  "policy": {
+    "levels": {
+      "0": {
+        "handshake": 5,
+        "conn_idle": 180,
+        "uplink_only": 2,
+        "downlink_only": 2
+      }
+    }
+  }
 }
