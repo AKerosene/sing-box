@@ -1,9 +1,45 @@
+// /etc/sing-box/config.json
 {
   "log": {
     "level": "info"
   },
   "inbounds": [
     {
+      // ======= ОБЩАЯ ЧАСТЬ: VLESS + WS =======
+      "type": "vless",
+      "listen": "0.0.0.0",
+      "listen_port": 443,
+      "users": [
+        {
+          "uuid": "de33d7d0-b3e9-4be2-b79e-5d5f13e493eb"
+        }
+      ],
+
+      // Мы определяем две «ветки» (routing) по полю `ping`:
+      // 1) Если клиент заходит на путь "/", вернётся простой HTTP 200 с HTML-ответом
+      // 2) Всё, что идёт на "/xR23f9K/", будет обрабатываться как VLESS+WS
+      //
+      // Замечание: Koyeb приемлет только HTTP/HTTPS (в том числе WS над HTTP),
+      // так что Sing-box видит входящий WS-трафик уже после TLS-развёртки (TLS termination).
+
+      // ————————————————————————————————————————————————————————
+      // Часть A: HTTP-отвечалка для проверки «живости» (до Koyeb это тоже считается HTTP).
+      // При запросе по "/" sing-box вернет простой 200 и заголовок "Content-Type: text/html"
+      //
+      "receive_proxy_protocol": false,  // не нужно, если Koyeb не шлёт PROXY protocol
+      "sniff": {
+        "enabled": false
+      },
+      "domain_strategy": "IPIfNonMatch", 
+      "detour": {
+        "to": "http_handler"
+      }
+    },
+    {
+      // ————————————————————————————————————————————————————————
+      // Часть B: VLESS+WS для реальных клиентов.
+      //
+      "tag": "vless-ws",
       "type": "vless",
       "listen": "0.0.0.0",
       "listen_port": 443,
@@ -14,13 +50,69 @@
       ],
       "transport": {
         "type": "ws",
-        "path": "/"
+        // Ставим нестандартный путь, чтобы скрыть «типичное» "/"
+        "path": "/xR23f9K/",
+        // Можно добавить произвольные заголовки (например, «Host») для маскировки.
+        // Но Koyeb-Ingress сам проставит Host = auto-generated-хост,
+        // поэтому эту секцию часто можно оставить пустой.
+        "headers": {
+          "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)" 
+        }
       }
     }
   ],
+
+  // ————————————————————————————————————————————————————————
+  // Маршрутизация. Если путь = "/", переключаемся на http_handler.
+  // Всё остальное (по умолчанию) — идёт в «vless-ws».
+  "routing": {
+    "rules": [
+      {
+        "type": "field",
+        "inbound": {
+          // HTTP-запрос, который sing-box увидит как «Host: <koyeb-домен>; GET /»
+          "inbound_tag": "",
+          "path": ["/"]
+        },
+        "outbound": "http_handler"
+      },
+      {
+        "type": "field",
+        "inbound": {
+          "inbound_tag": "",
+          "path": ["/xR23f9K/"]
+        },
+        "outbound": "direct"
+      }
+    ]
+  },
+
+  // ————————————————————————————————————————————————————————
+  // HTTP-«заглушка» (простая html-страница) для пути "/"
   "outbounds": [
     {
+      "tag": "http_handler",
+      "type": "blackhole",  
+      // Blackhole тут нужен лишь для того, чтобы sing-box не падал, 
+      // но мы потом само сообщение обработаем в «reverse» через http_response
+      "domain_strategy": "AsIs"
+    },
+    {
+      // Прямой исходящий (никакого прокси) для реальных запросов
+      "tag": "direct",
       "type": "direct"
     }
-  ]
+  ],
+
+  // ————————————————————————————————————————————————————————
+  // Дополнительная секция, которая позволит sing-box отдавать HTTP 200 на /:
+  "datasource": {
+    "http_response": {
+      "path": "/",
+      "headers": {
+        "Content-Type": ["text/html; charset=utf-8"]
+      },
+      "body": "<html><body><h1>OK</h1></body></html>"
+    }
+  }
 }
