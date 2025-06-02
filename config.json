@@ -5,7 +5,7 @@
   "inbounds": [
     {
       "type": "vless",
-      "listen": "::",
+      "listen": "0.0.0.0",
       "listen_port": 443,
       "users": [
         {
@@ -22,27 +22,5 @@
     {
       "type": "direct"
     }
-  ],
-  "experimental": {
-    "clash_api": {
-      "external_controller": "127.0.0.1:9090",
-      "store_selected": true,
-      "cache_file": "clash.db",
-      "default_mode": "direct",
-      "secret": ""
-    }
-  },
-  "route": {
-    "auto_detect_interface": true
-  },
-  "policy": {
-    "level": {
-      "0": {
-        "handshake": 5,
-        "conn_idle": 180,
-        "uplink_only": 2,
-        "downlink_only": 2
-      }
-    }
-  }
+  ]
 }
